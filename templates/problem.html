@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>{{ problem.title }} — Interview Prep</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"/>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="nav-brand">
+    <a href="/" style="color:inherit;text-decoration:none">
+      <span class="brand-icon">◆</span> Interview Prep
+    </a>
+  </div>
+  <div class="nav-tag">AI-Powered · Groq · Llama 3.3 70B</div>
+</nav>
+
+<main class="problem-layout">
+
+  <!-- LEFT: Problem Statement ──────────────────────── -->
+  <div class="problem-left">
+    <div class="prob-header">
+      <h1 class="prob-title">{{ problem.title }}</h1>
+      <div class="prob-meta">
+        <span class="diff-badge {{ problem.difficulty }}">{{ problem.difficulty }}</span>
+        <span class="cat-badge">{{ problem.category }}</span>
+      </div>
+    </div>
+
+    <div class="prob-desc">{{ problem.description }}</div>
+
+    {% set examples = problem.examples %}
+    {% if examples %}
+    <div class="prob-section">
+      <h3>Examples</h3>
+      {% for ex in examples %}
+      <div class="example-block">
+        <div class="ex-row"><span class="ex-lbl">Input:</span><code>{{ ex.input }}</code></div>
+        <div class="ex-row"><span class="ex-lbl">Output:</span><code>{{ ex.output }}</code></div>
+        {% if ex.explanation %}
+        <div class="ex-row"><span class="ex-lbl">Explanation:</span><span class="ex-exp">{{ ex.explanation }}</span></div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Hints section -->
+    <div class="hints-section">
+      <h3>Need Help?</h3>
+      <div id="hints-container"></div>
+      <button id="hint-btn" class="btn-hint">💡 Get Hint</button>
+      <span id="hint-count" class="hint-count">0 hints used</span>
+    </div>
+
+    <!-- Previous attempts -->
+    {% if attempts %}
+    <div class="prev-attempts">
+      <h3>Your Attempts</h3>
+      {% for a in attempts %}
+      <div class="attempt-row">
+        <span class="att-score
+          {% if a.score >= 80 %}score-high
+          {% elif a.score >= 50 %}score-mid
+          {% else %}score-low{% endif %}">
+          {{ a.score }}/100
+        </span>
+        <span class="att-status {{ 'att-pass' if a.passed else 'att-fail' }}">
+          {{ '✓ Passed' if a.passed else '✗ Failed' }}
+        </span>
+        <span class="att-date">{{ a.created_at.strftime('%b %d %H:%M') }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- RIGHT: Code Editor ───────────────────────────── -->
+  <div class="problem-right">
+    <div class="editor-header">
+      <div class="editor-title">Solution</div>
+      <div class="editor-actions">
+        <button id="run-btn"  class="btn-run">▶ Run Tests</button>
+        <button id="eval-btn" class="btn-eval">✓ Submit</button>
+      </div>
+    </div>
+
+    <textarea id="code-editor" class="code-editor" spellcheck="false">def solution():
+    # Write your solution here
+    pass
+</textarea>
+
+    <!-- Test Results -->
+    <div id="test-results" class="test-results hidden">
+      <div class="tr-header">
+        <span class="tr-title">Test Results</span>
+        <span id="tr-summary" class="tr-summary"></span>
+      </div>
+      <div id="tr-list"></div>
+    </div>
+
+    <!-- Feedback -->
+    <div id="feedback-panel" class="feedback-panel hidden">
+      <div class="fb-header">
+        <span class="fb-title">🤖 AI Feedback</span>
+        <span id="fb-score" class="fb-score"></span>
+      </div>
+      <div id="fb-text" class="fb-text"></div>
+    </div>
+
+  </div>
+</main>
+
+<script>
+const PROBLEM_ID  = {{ problem.id }};
+const PROBLEM_TITLE = {{ problem.title | tojson }};
+let hintsUsed = 0;
+
+// ── Hint ──────────────────────────────────────────────
+document.getElementById('hint-btn').addEventListener('click', () => {
+  const btn = document.getElementById('hint-btn');
+  btn.disabled = true;
+  btn.textContent = 'Getting hint...';
+
+  fetch('/api/hint', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({problem_id: PROBLEM_ID, attempt_num: hintsUsed})
+  })
+  .then(r => r.json())
+  .then(data => {
+    hintsUsed++;
+    document.getElementById('hint-count').textContent =
+      hintsUsed + ' hint' + (hintsUsed > 1 ? 's' : '') + ' used';
+
+    const container = document.getElementById('hints-container');
+    const hintEl = document.createElement('div');
+    hintEl.className = 'hint-item';
+    hintEl.innerHTML = `<span class="hint-num">Hint ${hintsUsed}</span><p>${data.hint}</p>`;
+    container.appendChild(hintEl);
+
+    btn.disabled = false;
+    btn.textContent = hintsUsed >= 3 ? '💡 Max hints reached' : '💡 Get Another Hint';
+    if (hintsUsed >= 3) btn.disabled = true;
+  })
+  .catch(() => { btn.disabled = false; btn.textContent = '💡 Get Hint'; });
+});
+
+// ── Run Tests ─────────────────────────────────────────
+document.getElementById('run-btn').addEventListener('click', () => {
+  const btn  = document.getElementById('run-btn');
+  const code = document.getElementById('code-editor').value;
+  btn.disabled = true;
+  btn.textContent = '▶ Running...';
+
+  fetch('/api/run', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({problem_id: PROBLEM_ID, code})
+  })
+  .then(r => r.json())
+  .then(data => {
+    renderTestResults(data);
+    btn.disabled = false;
+    btn.textContent = '▶ Run Tests';
+  })
+  .catch(() => { btn.disabled = false; btn.textContent = '▶ Run Tests'; });
+});
+
+// ── Submit ────────────────────────────────────────────
+document.getElementById('eval-btn').addEventListener('click', () => {
+  const btn  = document.getElementById('eval-btn');
+  const code = document.getElementById('code-editor').value;
+  btn.disabled = true;
+  btn.textContent = '✓ Evaluating...';
+
+  fetch('/api/evaluate', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({problem_id: PROBLEM_ID, code, hints_used: hintsUsed})
+  })
+  .then(r => r.json())
+  .then(data => {
+    renderTestResults(data);
+    renderFeedback(data);
+    btn.disabled = false;
+    btn.textContent = '✓ Submit';
+  })
+  .catch(() => { btn.disabled = false; btn.textContent = '✓ Submit'; });
+});
+
+// ── Render helpers ────────────────────────────────────
+function renderTestResults(data) {
+  const panel   = document.getElementById('test-results');
+  const summary = document.getElementById('tr-summary');
+  const list    = document.getElementById('tr-list');
+  panel.classList.remove('hidden');
+
+  summary.textContent  = `${data.pass_count}/${data.total} passed`;
+  summary.className    = 'tr-summary ' + (data.passed_all ? 'all-pass' : 'some-fail');
+
+  list.innerHTML = (data.results || []).map((r, i) => `
+    <div class="tc-row ${r.passed ? 'tc-pass' : 'tc-fail'}">
+      <span class="tc-num">#${i+1}</span>
+      <span class="tc-status">${r.passed ? '✓' : '✗'}</span>
+      <span class="tc-detail">
+        Expected: <code>${JSON.stringify(r.expected)}</code>
+        Got: <code>${r.error ? 'Error' : JSON.stringify(r.output)}</code>
+        ${r.error ? `<span class="tc-err">${r.error.split('\n')[0]}</span>` : ''}
+      </span>
+    </div>`).join('');
+}
+
+function renderFeedback(data) {
+  const panel = document.getElementById('feedback-panel');
+  panel.classList.remove('hidden');
+  document.getElementById('fb-score').textContent = data.score + '/100';
+  document.getElementById('fb-score').className =
+    'fb-score ' + (data.score >= 80 ? 'score-high' : data.score >= 50 ? 'score-mid' : 'score-low');
+  document.getElementById('fb-text').textContent = data.feedback;
+  panel.scrollIntoView({behavior: 'smooth', block: 'start'});
+}
+</script>
+</body>
+</html>

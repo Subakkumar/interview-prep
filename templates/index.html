@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Interview Prep Assistant</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"/>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="nav-brand"><span class="brand-icon">◆</span> Interview Prep</div>
+  <div class="nav-tag">AI-Powered · Groq · Llama 3.3 70B</div>
+</nav>
+
+<main class="container">
+
+  <div class="hero">
+    <h1>Master <span class="accent">Coding Interviews</span> with AI</h1>
+    <p class="hero-sub">Practice real interview problems, get progressive hints, and receive AI-powered feedback on your solutions.</p>
+  </div>
+
+  <!-- Stats bar -->
+  <div class="stats-bar">
+    <div class="stat-item">
+      <span class="stat-val">{{ by_diff['easy']|length }}</span>
+      <span class="stat-lbl easy-color">Easy</span>
+    </div>
+    <div class="stat-sep">·</div>
+    <div class="stat-item">
+      <span class="stat-val">{{ by_diff['medium']|length }}</span>
+      <span class="stat-lbl med-color">Medium</span>
+    </div>
+    <div class="stat-sep">·</div>
+    <div class="stat-item">
+      <span class="stat-val">{{ by_diff['hard']|length }}</span>
+      <span class="stat-lbl hard-color">Hard</span>
+    </div>
+    <div class="stat-sep">·</div>
+    <div class="stat-item">
+      <span class="stat-val">{{ problems|length }}</span>
+      <span class="stat-lbl">Total Problems</span>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters">
+    <button class="filter-btn active" data-filter="all">All</button>
+    <button class="filter-btn easy-btn"   data-filter="easy">Easy</button>
+    <button class="filter-btn med-btn"    data-filter="medium">Medium</button>
+    <button class="filter-btn hard-btn"   data-filter="hard">Hard</button>
+  </div>
+
+  <!-- Problem Grid -->
+  <div class="problem-grid" id="problem-grid">
+    {% for problem in problems %}
+    <a href="/problem/{{ problem.id }}" class="problem-card {{ problem.difficulty }}"
+       data-difficulty="{{ problem.difficulty }}">
+      <div class="pc-top">
+        <span class="pc-diff {{ problem.difficulty }}">{{ problem.difficulty }}</span>
+        <span class="pc-cat">{{ problem.category }}</span>
+      </div>
+      <div class="pc-title">{{ problem.title }}</div>
+      <div class="pc-desc">{{ problem.description[:100] }}...</div>
+      <div class="pc-footer">
+        <span class="pc-solve">Solve →</span>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+
+</main>
+
+<footer class="footer">
+  <span>◆ Interview Prep Assistant</span>
+  <span>github.com/Subakkumar</span>
+</footer>
+
+<script>
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const filter = btn.dataset.filter;
+    document.querySelectorAll('.problem-card').forEach(card => {
+      card.style.display =
+        filter === 'all' || card.dataset.difficulty === filter ? '' : 'none';
+    });
+  });
+});
+</script>
+</body>
+</html>

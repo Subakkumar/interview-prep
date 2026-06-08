@@ -30,3 +30,8 @@ AI-powered coding interview practice platform. Practice real problems, get progr
 ## Problems Included
 
 Arrays, Strings, Stacks, Dynamic Programming, Binary Search, Graphs, Linked Lists, Recursion
+
+## Screenshots
+
+<img width="1919" height="1024" alt="image" src="https://github.com/user-attachments/assets/8a26a2e6-5160-440e-b59d-b1660bab0540" />
+<img width="1919" height="1024" alt="image" src="https://github.com/user-attachments/assets/c7cd9a97-0070-4d8f-a5e9-92c3e8b6e6a5" />
